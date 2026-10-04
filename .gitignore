@@ -218,3 +218,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+#Raw social media data
+data/*.txt
+data/*.rtf
