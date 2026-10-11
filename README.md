@@ -103,4 +103,4 @@ LLM evaluation (needs your own `ANTHROPIC_API_KEY`):
 
 ## Author
 
-Jing Yang（please hire me)
+Jing Yang · [GitHub](https://github.com/NoraYang03) · [LinkedIn](https://www.linkedin.com/in/jing-yang-37a70b35b/)
