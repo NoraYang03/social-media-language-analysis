@@ -13,6 +13,35 @@ Unigram + bigram TF-IDF features, 80/10/10 train/dev/test split (`random_state=4
 
 **Takeaway:** platform-specific language signals exist, but overlap between platforms is large, so a comment's platform can be predicted only moderately well from its text.
 
+## LLM evaluation: zero-shot Claude vs. Logistic Regression
+
+Can a general-purpose LLM, with no training data, tell the platforms apart as well as a model trained on this dataset?
+
+- **Sample:** 100 comments drawn at random from the same test set.
+- **LLM:** Claude Opus 5.5 (`claude-opus-5-5`), zero-shot. It sees only the raw comment (emojis included) and the three platform names, and returns structured JSON: the platform plus a one-to-two-sentence reason.
+- **Human review:** 50 of the 100 outputs reviewed by hand against a rubric ([`llm_eval/rubric.md`](llm_eval/rubric.md)) that judges the *reason*, not only the answer.
+
+| Model (same 100 comments) | Accuracy | Precision | Recall | Weighted F1 |
+|---|---|---|---|---|
+| **Logistic Regression** | **0.720** | **0.752** | **0.720** | **0.700** |
+| Claude zero-shot | 0.560 | 0.584 | 0.560 | 0.566 |
+
+The two agree on 62% of comments: both right on 48, only Logistic Regression on 24, only Claude on 8, neither on 20. On the smallest class, YouTube Shorts, Claude recalls 5 of 13 comments versus 3 of 13 for Logistic Regression.
+
+| Human review (50 outputs) | Result |
+|---|---|
+| Cues named in the reason are actually in the comment | 50/50 |
+| Reason supports the platform chosen | 37/50 (23/26 correct, 14/24 wrong) |
+| Overconfident on a comment with no real platform signal | 15/50 |
+
+Error types among the 24 wrong predictions: platform stereotype (11), no platform signal in the comment (10), misread (1), other (2).
+
+- **No hallucinated evidence:** every reason cited words or emojis that were really in the comment; errors come from how cues were interpreted.
+- **Stereotypes drive the errors:** a plain, fully punctuated sentence is read as "YouTube style" and a bare `@mention` as "Instagram style", but both habits appear on every platform here. Claude predicted YouTube Shorts 18 times and was right 5 times.
+- **Many comments carry no signal:** a lone emoji or "me fr" fits any platform.
+
+**Takeaway:** on this task a small model trained on in-domain data beats a large zero-shot model by 16 accuracy points. The LLM's reasons are faithful to the text but lean on general platform stereotypes that do not hold for this dataset, a failure that shows up only when the reasoning is reviewed, not just the accuracy.
+
 ## Data
 
 - Comments collected from comparable videos on one topic (carsickness) on each platform, to reduce topic differences.
@@ -46,20 +75,29 @@ Results show detectable differences within this dataset; this is not a general-p
 
 - A larger, more balanced dataset across topics and creators
 - Feature analysis: which words, n-grams, and emojis drive each prediction
-- Additional text representations and classification methods
+- Additional text representations and classification methods, including a fine-tuned neural classifier in PyTorch
+- Few-shot prompting, to test whether a handful of in-domain examples closes the gap between the LLM and the supervised model
 
 ## How to run
 
     pip install -r requirements.txt
     jupyter notebook social_media_language_analysis.ipynb
 
-Requirements: `pandas`, `scikit-learn`, `emoji`.
+Requirements: `pandas`, `scikit-learn`, `emoji`, `anthropic`.
+
+LLM evaluation (needs your own `ANTHROPIC_API_KEY`):
+
+    python llm_eval/make_sample.py       # rebuild the split, baseline, and 100-comment sample
+    python llm_eval/run_llm.py           # Claude zero-shot predictions
+    python llm_eval/evaluate.py          # metrics + human-review sheet
+    python llm_eval/summarize_review.py  # rubric summary
 
 ## Files
 
 | File | Contents |
 |---|---|
 | `social_media_language_analysis.ipynb` | Full analysis: data loading, preprocessing, emoji analysis, classification, results |
+| `llm_eval/` | LLM evaluation scripts and the human-review rubric |
 | `requirements.txt` | Python dependencies |
 | `data/README.md` | Notes on the (not included) data files |
 

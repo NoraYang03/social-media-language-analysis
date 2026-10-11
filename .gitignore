@@ -222,3 +222,7 @@ __marimo__/
 #Raw social media data
 data/*.txt
 data/*.rtf
+
+# Raw comments also appear in the LLM evaluation files
+llm_eval/*.csv
+llm_eval/*.numbers
